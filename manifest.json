@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Work-Relevant Filter",
+  "version": "0.1.0",
+  "description": "Blocks Reddit pages that aren't relevant to your work, judged by an LLM on Groq.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.groq.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["*://*.reddit.com/*"],
+      "js": ["lib.js", "content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Work-Relevant Filter" }
+}
