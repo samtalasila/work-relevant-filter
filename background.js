@@ -1,6 +1,9 @@
 // Service worker: decides allow/block for each page, calling Groq and falling back to keywords.
 importScripts('lib.js');
 
+// Content scripts never read storage directly, so keep the API key out of reach of a compromised Reddit page.
+chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
+
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_TIMEOUT_MS = 6000;
 
