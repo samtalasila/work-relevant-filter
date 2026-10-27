@@ -72,7 +72,7 @@ async function classify(route, page) {
   }
   if (!verdict) {
     // Keyword verdicts are not cached, so the page is re-judged by Groq once it is reachable.
-    verdict = WF.keywordVerdict(route, page);
+    verdict = WF.keywordVerdict(route, page, settings.keywords);
     source = 'keywords';
   }
 
@@ -97,14 +97,17 @@ async function unlock(route, url, reason) {
   });
 }
 
-// Runs one relevant and one irrelevant sample through Groq with the popup's unsaved settings.
-async function testModel(settings) {
+// Runs an irrelevant sample, plus the chosen persona's relevant one, through Groq with the popup's unsaved settings.
+async function testModel(settings, personaId) {
   const samples = [
-    [WF.routeFor('https://www.reddit.com/r/LocalLLaMA/comments/test1/x/'),
-      { title: 'How we cut RAG eval costs 60% with a small judge model', body: 'Benchmarks and prompts inside.' }, true],
     [WF.routeFor('https://www.reddit.com/r/aww/comments/test2/x/'),
       { title: 'My cat learned to open the fridge', body: '' }, false],
   ];
+  const persona = WF.PERSONAS.find((p) => p.id === personaId);
+  if (persona) {
+    const { subreddit, title, body } = persona.sample;
+    samples.unshift([WF.routeFor(`https://www.reddit.com/r/${subreddit}/comments/test1/x/`), { title, body }, true]);
+  }
   const results = [];
   for (const [route, page, expected] of samples) {
     const start = Date.now();
@@ -125,7 +128,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg.type === 'test') {
-    testModel(msg.settings).then(sendResponse, (err) => sendResponse({ ok: false, error: String(err.message || err) }));
+    testModel(msg.settings, msg.personaId).then(sendResponse, (err) => sendResponse({ ok: false, error: String(err.message || err) }));
     return true;
   }
   if (msg.type === 'unlock') {

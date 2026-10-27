@@ -41,23 +41,72 @@ test('normalizeSubs accepts r/ prefixes, commas and newlines', () => {
   assert.deepEqual(WF.normalizeSubs('r/LocalLLaMA\n/r/MachineLearning, aww\n\naww'), ['localllama', 'machinelearning', 'aww']);
 });
 
+const AI = WF.PERSONAS.find((p) => p.id === 'ai-consultant').keywords;
+
 test('keyword backup ignores negated mentions like "NOT AI"', () => {
-  assert.equal(WF.keywordHits('My cat, NOT AI generated'), 0);
-  assert.equal(WF.keywordHits('no AI-generated content'), 0);
-  assert.equal(WF.keywordHits('Said the waiter to the chair'), 0);
-  assert.equal(WF.keywordHits('Fine-tuning LLMs for RAG'), 3);
-  assert.equal(WF.keywordHits('Our machine learning pipeline'), 1);
+  assert.equal(WF.keywordHits('My cat, NOT AI generated', AI), 0);
+  assert.equal(WF.keywordHits('no AI-generated content', AI), 0);
+  assert.equal(WF.keywordHits('Said the waiter to the chair', AI), 0);
+  assert.equal(WF.keywordHits('Fine-tuning LLMs for RAG', AI), 3);
+  assert.equal(WF.keywordHits('Our machine learning pipeline', AI), 1);
+});
+
+test('short all-caps keywords match case-sensitively, longer ones do not', () => {
+  assert.equal(WF.keywordHits('the SEC filed', ['SEC']), 1);
+  assert.equal(WF.keywordHits('a second sec of video', ['SEC']), 0);
+  assert.equal(WF.keywordHits('Due DILIGENCE', ['due diligence']), 1);
 });
 
 test('keywordVerdict judges posts and listings', () => {
   const post = WF.routeFor('https://www.reddit.com/r/aww/comments/abc/x');
-  assert.equal(WF.keywordVerdict(post, { title: 'Look at my dog, NOT AI' }).relevant, false);
-  assert.equal(WF.keywordVerdict(post, { title: 'Evaluating LLM agents' }).relevant, true);
+  assert.equal(WF.keywordVerdict(post, { title: 'Look at my dog, NOT AI' }, AI).relevant, false);
+  assert.equal(WF.keywordVerdict(post, { title: 'Evaluating LLM agents' }, AI).relevant, true);
 
   const sub = WF.routeFor('https://www.reddit.com/r/startups/');
-  assert.equal(WF.keywordVerdict(sub, { titles: ['AI agents for sales', 'Raising a seed', 'LLM costs'] }).relevant, true);
-  assert.equal(WF.keywordVerdict(sub, { titles: ['Burnout', 'Raising a seed', 'LLM costs'] }).relevant, false);
-  assert.equal(WF.keywordVerdict(WF.routeFor('https://www.reddit.com/r/LocalLLaMA/'), { titles: [] }).relevant, true);
+  assert.equal(WF.keywordVerdict(sub, { titles: ['AI agents for sales', 'Raising a seed', 'LLM costs'] }, AI).relevant, true);
+  assert.equal(WF.keywordVerdict(sub, { titles: ['Burnout', 'Raising a seed', 'LLM costs'] }, AI).relevant, false);
+});
+
+test('keywordVerdict treats r/ entries as relevant subreddits', () => {
+  const keywords = ['contract', 'r/Lawyertalk'];
+  const inList = WF.routeFor('https://www.reddit.com/r/LawyerTalk/');
+  assert.equal(WF.keywordVerdict(inList, { titles: [] }, keywords).relevant, true);
+  assert.match(WF.keywordVerdict(inList, { titles: [] }, keywords).reason, /your keyword list/);
+  const other = WF.routeFor('https://www.reddit.com/r/aww/');
+  assert.equal(WF.keywordVerdict(other, { titles: [] }, keywords).relevant, false);
+  assert.equal(WF.keywordHits('r/lawyertalk', keywords), 0);
+});
+
+test('normalizeKeywords splits on newlines and commas, keeps phrases and case', () => {
+  assert.deepEqual(
+    WF.normalizeKeywords('Hugging Face, RAG\n  /r/LocalLLaMA\nr/LocalLLaMA\n\nR/Aww, RAG'),
+    ['Hugging Face', 'RAG', 'r/localllama', 'r/aww'],
+  );
+  assert.deepEqual(WF.normalizeKeywords(' , \n'), []);
+});
+
+test('every persona is complete and its sample is relevant under its own keywords', () => {
+  assert.equal(WF.PERSONAS[0].id, 'software-engineer');
+  assert.deepEqual(WF.DEFAULTS.keywords, WF.PERSONAS[0].keywords);
+  assert.equal(WF.DEFAULTS.workDescription, WF.PERSONAS[0].workDescription);
+  for (const p of WF.PERSONAS) {
+    assert.ok(p.id && p.label && p.workDescription, p.id);
+    assert.ok(p.keywords.length >= 20, p.id);
+    assert.ok(p.keywords.some((k) => k.startsWith('r/')), p.id);
+    const { title, body } = p.sample;
+    assert.ok(p.sample.subreddit && title && body, p.id);
+    const route = WF.routeFor(`https://www.reddit.com/r/aww/comments/abc/x`);
+    assert.equal(WF.keywordVerdict(route, { title, body }, p.keywords).relevant, true, p.id);
+    assert.equal(WF.keywordVerdict(route, { title: 'My cat learned to open the fridge' }, p.keywords).relevant, false, p.id);
+  }
+});
+
+test('matchPersona finds a preset only when description and keywords both match', () => {
+  const p = WF.PERSONAS[2];
+  assert.equal(WF.matchPersona(p.workDescription, p.keywords), p);
+  assert.equal(WF.matchPersona(`${p.workDescription} `, WF.normalizeKeywords(p.keywords.join('\n'))), p);
+  assert.equal(WF.matchPersona(p.workDescription, [...p.keywords, 'extra']), null);
+  assert.equal(WF.matchPersona('something else', p.keywords), null);
 });
 
 test('buildMessages includes the work description and truncates long bodies', () => {

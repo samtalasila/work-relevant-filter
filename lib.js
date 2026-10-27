@@ -2,13 +2,106 @@
 // Everything here is pure: no chrome.* calls and no DOM access.
 
 const WF = (() => {
+  const PERSONAS = [
+    {
+      id: 'software-engineer',
+      label: 'Software engineer',
+      workDescription:
+        'Software engineering: designing, building, testing and operating backend and frontend systems; ' +
+        'programming languages, architecture, databases, distributed systems, DevOps and developer tooling; ' +
+        'code review, engineering practices, and engineering careers and teams.',
+      keywords: [
+        'software engineering', 'software architecture', 'system design', 'code review', 'unit test',
+        'refactoring', 'technical debt', 'microservices', 'distributed systems', 'database',
+        'open source', 'programming language', 'backend', 'frontend', 'full stack',
+        'DevOps', 'CI/CD', 'API', 'SQL', 'AWS', 'Git', 'GitHub', 'Docker', 'Kubernetes',
+        'PostgreSQL', 'TypeScript', 'JavaScript', 'Python', 'Rust', 'Golang',
+        'r/programming', 'r/ExperiencedDevs', 'r/softwarearchitecture', 'r/webdev', 'r/devops',
+        'r/cscareerquestions', 'r/rust', 'r/golang', 'r/node', 'r/reactjs',
+      ],
+      sample: {
+        subreddit: 'ExperiencedDevs',
+        title: 'How we migrated a monolith to microservices without downtime',
+        body: 'Lessons on database cutovers, API versioning and rollback plans from a two-year migration.',
+      },
+    },
+    {
+      id: 'ai-consultant',
+      label: 'AI consultant',
+      workDescription:
+        'Applied AI and the business around it: building LLM apps, agents, RAG, evals and AI tooling; ' +
+        'AI consulting and selling AI to enterprises; AI startups; AI governance and regulation, ' +
+        'especially in financial services.',
+      keywords: [
+        'AI', 'ML', 'LLM', 'GPT', 'RAG', 'NLP', 'MLOps', 'genAI',
+        'machine learning', 'artificial intelligence', 'deep learning', 'neural network',
+        'language model', 'transformer', 'fine tuning', 'embedding', 'inference',
+        'prompt engineering', 'vector database', 'AI agent', 'agentic',
+        'OpenAI', 'Anthropic', 'Claude', 'ChatGPT', 'Gemini', 'Llama', 'Mistral', 'Hugging Face',
+        'LangChain', 'PyTorch', 'TensorFlow', 'AI governance', 'AI regulation', 'EU AI Act',
+        'r/machinelearning', 'r/localllama', 'r/artificial', 'r/openai', 'r/claudeai', 'r/chatgptpro',
+        'r/learnmachinelearning', 'r/datascience', 'r/mlops', 'r/langchain', 'r/ollama', 'r/llmdevs',
+        'r/deeplearning', 'r/mlquestions', 'r/promptengineering', 'r/aiagents', 'r/singularity',
+      ],
+      sample: {
+        subreddit: 'LocalLLaMA',
+        title: 'How we cut RAG eval costs 60% with a small judge model',
+        body: 'Benchmarks and prompts inside.',
+      },
+    },
+    {
+      id: 'corporate-lawyer',
+      label: 'Corporate lawyer',
+      workDescription:
+        'Corporate law: mergers and acquisitions, securities and capital markets, commercial contracts, ' +
+        'corporate governance and regulatory compliance; running a law practice or in-house legal team; ' +
+        'legal technology, and developments in case law and regulation that affect businesses.',
+      keywords: [
+        'corporate law', 'mergers and acquisitions', 'M&A', 'due diligence', 'securities law',
+        'securities regulation', 'capital markets', 'private equity', 'term sheet',
+        'purchase agreement', 'commercial contract', 'contract drafting', 'indemnification',
+        'corporate governance', 'fiduciary duty', 'board of directors', 'shareholder',
+        'compliance', 'SEC', 'antitrust', 'general counsel', 'in-house counsel', 'law firm',
+        'legal tech', 'billable hours', 'associate', 'partner track', 'paralegal', 'litigation',
+        'r/law', 'r/LawFirm', 'r/Lawyertalk', 'r/biglaw', 'r/legaladvice', 'r/inhouse',
+      ],
+      sample: {
+        subreddit: 'biglaw',
+        title: 'Negotiating indemnification caps in an M&A purchase agreement',
+        body: 'Our due diligence turned up regulatory exposure. How do you structure the escrow and survival period?',
+      },
+    },
+    {
+      id: 'science-teacher',
+      label: 'Science teacher',
+      workDescription:
+        'Teaching high-school science: biology, chemistry and physics; lesson plans, labs and demonstrations; ' +
+        'pedagogy, assessment and classroom management; curriculum standards, lab safety, ' +
+        'and the teaching profession.',
+      keywords: [
+        'lesson plan', 'lab safety', 'lab activity', 'classroom management', 'pedagogy',
+        'formative assessment', 'curriculum', 'NGSS', 'AP Biology', 'AP Chemistry', 'AP Physics',
+        'high school science', 'science teacher', 'science fair', 'inquiry-based', 'rubric',
+        'differentiation', 'stoichiometry', 'periodic table', 'photosynthesis', 'cell biology',
+        'genetics', 'Newton', 'kinematics', 'titration', 'dissection', 'chemistry', 'biology', 'physics',
+        'r/ScienceTeachers', 'r/Teachers', 'r/chemistry', 'r/biology', 'r/physics',
+        'r/ChemistryTeachers', 'r/HighSchoolTeachers', 'r/APBiology',
+      ],
+      sample: {
+        subreddit: 'ScienceTeachers',
+        title: 'Lab activity ideas for teaching stoichiometry to sophomores',
+        body: 'Looking for a titration lab with low prep and good lab safety. What rubric do you use?',
+      },
+    },
+  ];
+
+  const DEFAULT_PERSONA = PERSONAS[0];
+
   const DEFAULTS = {
     apiKey: '',
     model: 'openai/gpt-oss-20b',
-    workDescription:
-      'Applied AI and the business around it: building LLM apps, agents, RAG, evals and AI tooling; ' +
-      'AI consulting and selling AI to enterprises; AI startups; AI governance and regulation, ' +
-      'especially in financial services.',
+    workDescription: DEFAULT_PERSONA.workDescription,
+    keywords: DEFAULT_PERSONA.keywords,
     allowSubs: [],
     blockSubs: [],
   };
@@ -144,40 +237,49 @@ const WF = (() => {
 
   // ---- Keyword backup, used when Groq is unavailable ----
 
-  const KEYWORDS = [
-    'AI', 'ML', 'LLM', 'GPT', 'RAG', 'NLP', 'MLOps', 'genAI',
-    'machine learning', 'artificial intelligence', 'deep learning', 'neural network',
-    'language model', 'transformer', 'fine tuning', 'embedding', 'inference',
-    'prompt engineering', 'vector database', 'AI agent', 'agentic',
-    'OpenAI', 'Anthropic', 'Claude', 'ChatGPT', 'Gemini', 'Llama', 'Mistral', 'Hugging Face',
-    'LangChain', 'PyTorch', 'TensorFlow', 'AI governance', 'AI regulation', 'EU AI Act',
-  ];
+  function normalizeKeywords(text) {
+    return [...new Set(
+      String(text || '')
+        .split(/[\n,]+/)
+        .map((entry) => entry.trim().replace(/^\/?r\/(.*)$/i, (_, sub) => `r/${sub.trim().toLowerCase()}`))
+        .filter((entry) => entry && entry !== 'r/'),
+    )];
+  }
 
-  const KEYWORD_SUBS = new Set([
-    'machinelearning', 'localllama', 'artificial', 'openai', 'claudeai', 'chatgptpro',
-    'learnmachinelearning', 'datascience', 'mlops', 'langchain', 'ollama', 'llmdevs',
-    'deeplearning', 'mlquestions', 'promptengineering', 'aiagents', 'singularity',
-  ]);
+  // Returns the persona whose description and keywords both match exactly, or null for custom text.
+  function matchPersona(workDescription, keywords) {
+    const description = String(workDescription || '').trim();
+    const list = normalizeKeywords((keywords || []).join('\n'));
+    return PERSONAS.find((p) =>
+      p.workDescription === description &&
+      JSON.stringify(normalizeKeywords(p.keywords.join('\n'))) === JSON.stringify(list)) || null;
+  }
 
   function escapeRegex(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   // Short all-caps acronyms match case-sensitively so "ai" or "Ml" in ordinary words don't count.
-  const KEYWORD_PATTERNS = KEYWORDS.map((kw) => {
-    const caseSensitive = kw.length <= 5 && kw === kw.toUpperCase();
-    const body = escapeRegex(kw).replace(/ /g, '[\\s-]');
-    return new RegExp(`(?<![\\w])${body}s?(?![\\w])`, caseSensitive ? 'g' : 'gi');
-  });
+  function compileKeywords(keywords) {
+    const subs = new Set();
+    const patterns = [];
+    for (const entry of normalizeKeywords((keywords || []).join('\n'))) {
+      if (entry.startsWith('r/')) {
+        subs.add(entry.slice(2));
+        continue;
+      }
+      const caseSensitive = entry.length <= 5 && entry === entry.toUpperCase();
+      const body = escapeRegex(entry).replace(/ /g, '[\\s-]');
+      patterns.push(new RegExp(`(?<![\\w])${body}s?(?![\\w])`, caseSensitive ? 'g' : 'gi'));
+    }
+    return { subs, patterns };
+  }
 
   const NEGATION = /\b(not|no|non|without|zero)[\s-]+$/i;
 
-  // Counts keyword hits, skipping negated ones like "NOT AI" or "no AI-generated".
-  function keywordHits(text) {
-    const str = String(text || '');
+  function countHits(str, patterns) {
     let hits = 0;
-    for (const pattern of KEYWORD_PATTERNS) {
-      pattern.lastIndex = 0;
+    for (const pattern of patterns) {
       let m;
       while ((m = pattern.exec(str))) {
         if (!NEGATION.test(str.slice(Math.max(0, m.index - 12), m.index))) hits++;
@@ -186,24 +288,30 @@ const WF = (() => {
     return hits;
   }
 
-  function keywordVerdict(route, page) {
+  // Counts keyword hits, skipping negated ones like "NOT AI" or "no AI-generated".
+  function keywordHits(text, keywords) {
+    return countHits(String(text || ''), compileKeywords(keywords).patterns);
+  }
+
+  function keywordVerdict(route, page, keywords) {
+    const { subs, patterns } = compileKeywords(keywords);
+    const hits = (text) => countHits(String(text || ''), patterns);
     const sub = route.subreddit || page.subreddit || '';
-    if (KEYWORD_SUBS.has(sub)) return { relevant: true, reason: `r/${sub} is an AI subreddit` };
+    if (subs.has(sub)) return { relevant: true, reason: `r/${sub} is on your keyword list` };
 
     if (route.kind === 'post') {
-      const hits = keywordHits(page.title) + keywordHits(page.body);
-      return hits > 0
-        ? { relevant: true, reason: 'Post mentions AI topics' }
-        : { relevant: false, reason: 'No AI topics in the post' };
+      return hits(page.title) + hits(page.body) > 0
+        ? { relevant: true, reason: 'Post mentions your keywords' }
+        : { relevant: false, reason: 'No keywords from your list in the post' };
     }
 
     const titles = page.titles || [];
-    const matching = titles.filter((t) => keywordHits(t) > 0).length;
-    const queryHit = route.query && keywordHits(route.query) > 0;
+    const matching = titles.filter((t) => hits(t) > 0).length;
+    const queryHit = route.query && hits(route.query) > 0;
     if (queryHit || (titles.length > 0 && matching / titles.length >= 0.5)) {
-      return { relevant: true, reason: `${matching} of ${titles.length} posts mention AI topics` };
+      return { relevant: true, reason: `${matching} of ${titles.length} posts mention your keywords` };
     }
-    return { relevant: false, reason: `Only ${matching} of ${titles.length} posts mention AI topics` };
+    return { relevant: false, reason: `Only ${matching} of ${titles.length} posts mention your keywords` };
   }
 
   // ---- Cache ----
@@ -228,8 +336,8 @@ const WF = (() => {
   }
 
   return {
-    DEFAULTS, OVERRIDE_MINUTES,
-    routeFor, quickDecision, normalizeSubs,
+    DEFAULTS, PERSONAS, OVERRIDE_MINUTES,
+    routeFor, quickDecision, normalizeSubs, normalizeKeywords, matchPersona,
     buildMessages, groqRequestBody, parseModelReply,
     keywordHits, keywordVerdict,
     cacheGet, cachePut, pushLog,

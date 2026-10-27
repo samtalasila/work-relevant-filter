@@ -45,12 +45,36 @@ function overrideItem(o) {
   return li;
 }
 
+const CUSTOM = 'custom';
+
+function syncPersona() {
+  const match = WF.matchPersona($('workDescription').value, WF.normalizeKeywords($('keywords').value));
+  $('persona').value = match ? match.id : CUSTOM;
+  return match;
+}
+
+function initPersonas() {
+  const options = [...WF.PERSONAS.map((p) => [p.id, p.label]), [CUSTOM, 'Custom']];
+  $('persona').replaceChildren(...options.map(([value, text]) => Object.assign(document.createElement('option'), { value, textContent: text })));
+}
+
+$('persona').addEventListener('change', () => {
+  const persona = WF.PERSONAS.find((p) => p.id === $('persona').value);
+  if (!persona) return;
+  $('workDescription').value = persona.workDescription;
+  $('keywords').value = persona.keywords.join('\n');
+});
+$('workDescription').addEventListener('input', syncPersona);
+$('keywords').addEventListener('input', syncPersona);
+
 async function load() {
   const data = await chrome.storage.local.get([...Object.keys(WF.DEFAULTS), 'verdictLog', 'overrideLog']);
   const settings = { ...WF.DEFAULTS, ...data };
   $('apiKey').value = settings.apiKey;
   $('model').value = settings.model;
   $('workDescription').value = settings.workDescription;
+  $('keywords').value = settings.keywords.join('\n');
+  syncPersona();
   $('allowSubs').value = settings.allowSubs.join('\n');
   $('blockSubs').value = settings.blockSubs.join('\n');
   renderList($('verdicts'), data.verdictLog, verdictItem);
@@ -64,6 +88,7 @@ $('save').addEventListener('click', async () => {
     apiKey: $('apiKey').value.trim(),
     model: $('model').value.trim() || WF.DEFAULTS.model,
     workDescription,
+    keywords: WF.normalizeKeywords($('keywords').value),
     allowSubs: WF.normalizeSubs($('allowSubs').value),
     blockSubs: WF.normalizeSubs($('blockSubs').value),
   });
@@ -93,8 +118,10 @@ $('test').addEventListener('click', async () => {
     }
 
     status(`Key works · testing ${model}…`);
+    const persona = syncPersona();
     const test = await chrome.runtime.sendMessage({
       type: 'test',
+      personaId: persona ? persona.id : null,
       settings: { apiKey: $('apiKey').value.trim(), model, workDescription: $('workDescription').value.trim() || WF.DEFAULTS.workDescription },
     });
     if (!test.ok) throw new Error(test.error);
@@ -111,4 +138,5 @@ $('clearCache').addEventListener('click', async () => {
   status('Cache cleared');
 });
 
+initPersonas();
 load();

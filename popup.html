@@ -8,7 +8,7 @@
     h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #656d76; margin: 16px 0 6px; }
     label { display: block; font-weight: 600; margin: 10px 0 4px; }
     .hint { color: #656d76; font-weight: 400; }
-    input, textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; font: inherit; }
+    input, textarea, select { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 6px; font: inherit; }
     textarea { resize: vertical; }
     .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
     .cols { display: flex; gap: 8px; }
@@ -35,8 +35,14 @@
   <input id="model" list="models">
   <datalist id="models"></datalist>
 
+  <label for="persona">Persona</label>
+  <select id="persona"></select>
+
   <label for="workDescription">Your work <span class="hint">(what counts as relevant)</span></label>
   <textarea id="workDescription" rows="4"></textarea>
+
+  <label for="keywords">Backup keywords <span class="hint">(used when Groq is unreachable; r/name for a subreddit)</span></label>
+  <textarea id="keywords" rows="4"></textarea>
 
   <div class="cols">
     <div>
