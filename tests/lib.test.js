@@ -109,6 +109,13 @@ test('matchPersona finds a preset only when description and keywords both match'
   assert.equal(WF.matchPersona('something else', p.keywords), null);
 });
 
+test('routeFor survives malformed percent escapes', () => {
+  const route = WF.routeFor('https://www.reddit.com/r/%E0%A4/');
+  assert.equal(route.kind, 'subreddit');
+  assert.equal(route.subreddit, '%e0%a4');
+  assert.equal(WF.routeFor('https://www.reddit.com/search/?q=%E0%A4').kind, 'listing');
+});
+
 test('buildMessages includes the work description and truncates long bodies', () => {
   const route = WF.routeFor('https://www.reddit.com/r/LocalLLaMA/comments/abc/x');
   const [system, user] = WF.buildMessages(route, { title: 'T', body: 'x'.repeat(5000) }, 'MY WORK');

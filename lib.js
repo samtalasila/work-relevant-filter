@@ -118,10 +118,18 @@ const WF = (() => {
     'login', 'register', 'account', 'password', 'premium', 'coins', 'policies', 'help',
   ]);
 
+  function safeDecode(segment) {
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
+    }
+  }
+
   // Maps a Reddit URL to the unit that gets judged. Pages with the same key share one verdict.
   function routeFor(href) {
     const url = new URL(href);
-    const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+    const parts = url.pathname.split('/').filter(Boolean).map(safeDecode);
     const first = (parts[0] || '').toLowerCase();
 
     if (parts.length === 0 || FEED_SEGMENTS.has(first)) return { kind: 'feed', key: 'feed:home' };
