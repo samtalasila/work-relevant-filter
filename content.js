@@ -173,12 +173,16 @@ async function recheck() {
   if (route.kind === 'utility') return show('idle');
   show('checking');
 
-  const page = route.kind === 'feed' ? {} : await extract(route, seq);
-  if (seq !== checkSeq || !page) return;
-
   let verdict;
   try {
-    verdict = await chrome.runtime.sendMessage({ type: 'classify', route, page });
+    // Only wait for page content when the decision actually needs it.
+    verdict = await chrome.runtime.sendMessage({ type: 'precheck', route });
+    if (seq !== checkSeq) return;
+    if (!verdict) {
+      const page = await extract(route, seq);
+      if (seq !== checkSeq || !page) return;
+      verdict = await chrome.runtime.sendMessage({ type: 'classify', route, page });
+    }
   } catch (err) {
     verdict = { decision: 'block', reason: `Filter error: ${err.message}`, source: 'error' };
   }

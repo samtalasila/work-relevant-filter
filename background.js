@@ -28,7 +28,9 @@ async function askGroq(route, page, settings) {
   }
 }
 
-async function classify(route, page) {
+// Decisions that need no page content: unlocks, rules, subreddit lists, and cached verdicts.
+// Returns null when the page has to be judged.
+async function precheck(route) {
   const settings = await getSettings();
   const now = Date.now();
   const { overrides = {}, cache = {} } = await chrome.storage.local.get(['overrides', 'cache']);
@@ -41,7 +43,20 @@ async function classify(route, page) {
 
   const cached = WF.cacheGet(cache, route.key, now);
   if (cached) return { decision: cached.relevant ? 'allow' : 'block', reason: cached.reason, source: 'cache' };
+  return null;
+}
 
+async function classify(route, page) {
+  // Short /comments/<id> links only reveal the subreddit once the post has loaded.
+  if (!route.subreddit && page.subreddit) {
+    route = { ...route, subreddit: page.subreddit };
+    const known = await precheck(route);
+    if (known) return known;
+  }
+
+  const settings = await getSettings();
+  const now = Date.now();
+  const { cache = {} } = await chrome.storage.local.get('cache');
   let verdict;
   let source = 'groq';
   let error = '';
@@ -100,6 +115,10 @@ async function testModel(settings) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'precheck') {
+    precheck(msg.route).then(sendResponse, () => sendResponse(null));
+    return true;
+  }
   if (msg.type === 'classify') {
     classify(msg.route, msg.page).then(sendResponse, (err) =>
       sendResponse({ decision: 'block', reason: `Filter error: ${err.message}`, source: 'error' }));
