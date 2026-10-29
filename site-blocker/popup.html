@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { width: 240px; margin: 0; padding: 14px; font: 13px/1.45 -apple-system, BlinkMacSystemFont, sans-serif; color: #1f2328; background: #fff; }
+    h1 { font-size: 15px; margin: 0 0 4px; }
+    #status { color: #656d76; margin: 0 0 12px; }
+    .row { display: flex; gap: 8px; }
+    button { font: inherit; padding: 5px 12px; border-radius: 6px; border: 1px solid #d0d7de; background: #f6f8fa; cursor: pointer; }
+    button.primary { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  </style>
+</head>
+<body>
+  <h1>Site Blocker</h1>
+  <p id="status"></p>
+  <div class="row" id="actions"></div>
+  <script src="lib.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

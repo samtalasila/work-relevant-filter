@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Site Blocker",
+  "version": "0.1.0",
+  "description": "Blocks x.com, twitter.com and linkedin.com. Turn it off or pause it for 5 minutes from the popup.",
+  "permissions": ["declarativeNetRequest", "storage", "alarms"],
+  "host_permissions": ["*://*.x.com/*", "*://*.twitter.com/*", "*://*.linkedin.com/*"],
+  "background": { "service_worker": "background.js" },
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html"],
+      "matches": ["*://*.x.com/*", "*://*.twitter.com/*", "*://*.linkedin.com/*"]
+    }
+  ],
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Site Blocker",
+    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  }
+}
