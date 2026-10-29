@@ -2,6 +2,8 @@
 
 A Chrome extension that blocks Reddit pages that aren't relevant to your work. An LLM on Groq judges each page against a description of your work. If Groq is unreachable, a keyword check takes over.
 
+Looking for a blocker for x.com, twitter.com and linkedin.com? See [`site-blocker/`](site-blocker/readme.md), a separate extension in this repo.
+
 ## Install
 
 1. Get a free API key at <https://console.groq.com/keys>.
