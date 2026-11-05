@@ -22,7 +22,7 @@ When a pause runs out, blocking comes back on its own and open tabs on those sit
 
 The state is one value under the `blocking` key in `chrome.storage.local`: `{mode: 'on'}`, `{mode: 'off'}`, or `{mode: 'paused', until: <epoch ms>}`. A missing or unreadable value means on.
 
-The service worker turns that state into one `declarativeNetRequest` dynamic rule that redirects main-frame requests for the three domains to `blocked.html`. It re-applies the state on install, on browser start, and whenever the value changes, and each run converges on the same result. A pause sets a `chrome.alarms` alarm for its deadline. The plain `declarativeNetRequest` permission is enough because the extension holds host access to the three domains. The `web_accessible_resources` entry lets pages on those domains be redirected to `blocked.html`.
+The service worker turns that state into one `declarativeNetRequest` dynamic rule that redirects main-frame requests for the three domains to `blocked.html`. It re-applies the state on install, on browser start, and whenever the value changes, and each run converges on the same result. A pause sets a `chrome.alarms` alarm for its deadline. As a backstop for navigations the rule does not see, a `chrome.tabs.onUpdated` listener sends any tab whose URL changes to a blocked site to `blocked.html` while blocking is on. The plain `declarativeNetRequest` permission is enough because the extension holds host access to the three domains. The `web_accessible_resources` entry lets pages on those domains be redirected to `blocked.html`.
 
 ## Files
 

@@ -38,6 +38,15 @@ test('the blocked list covers x.com, twitter.com and linkedin.com with subdomain
   assert.deepEqual(SB.MATCH_PATTERNS, ['*://*.x.com/*', '*://*.twitter.com/*', '*://*.linkedin.com/*']);
 });
 
+test('isBlockedUrl matches the blocked domains and their subdomains only', () => {
+  for (const url of ['https://x.com/home', 'https://mobile.twitter.com/', 'https://www.linkedin.com/feed/']) {
+    assert.equal(SB.isBlockedUrl(url), true, url);
+  }
+  for (const url of ['https://notx.com/', 'https://x.com.evil.example/', 'https://example.com/?u=x.com', 'about:blank', 'not a url']) {
+    assert.equal(SB.isBlockedUrl(url), false, url);
+  }
+});
+
 test('formatRemaining shows minutes and zero-padded seconds', () => {
   assert.equal(SB.formatRemaining(252_000), '4:12');
   assert.equal(SB.formatRemaining(300_000), '5:00');

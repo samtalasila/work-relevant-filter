@@ -9,6 +9,12 @@ const SB = (() => {
   // A pattern of the form *://*.domain/* also matches the bare domain.
   const MATCH_PATTERNS = BLOCKED_DOMAINS.map((d) => `*://*.${d}/*`);
 
+  function isBlockedUrl(url) {
+    let host;
+    try { host = new URL(url).hostname; } catch { return false; }
+    return BLOCKED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+  }
+
   function parseState(raw) {
     if (raw && raw.mode === 'off') return { mode: 'off' };
     if (raw && raw.mode === 'paused' && Number.isFinite(raw.until)) return { mode: 'paused', until: raw.until };
@@ -33,7 +39,7 @@ const SB = (() => {
     return `${Math.floor(total / 60)}:${seconds}`;
   }
 
-  return { BLOCKED_DOMAINS, PAUSE_MS, STORAGE_KEY, MATCH_PATTERNS, parseState, isBlocking, pauseFrom, formatRemaining };
+  return { BLOCKED_DOMAINS, PAUSE_MS, STORAGE_KEY, MATCH_PATTERNS, isBlockedUrl, parseState, isBlocking, pauseFrom, formatRemaining };
 })();
 
 if (typeof module !== 'undefined') module.exports = SB;

@@ -38,6 +38,10 @@ const chrome = spawn(findChromium(), [
   `--load-extension=${extensionDir}`,
   `--disable-extensions-except=${extensionDir}`,
   '--headless=new',
+  // Without this, macOS asks for the login keychain password to unlock "Chromium Safe Storage".
+  '--use-mock-keychain',
+  // x.com answers the HeadlessChrome user agent with an error page.
+  '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
   '--remote-debugging-port=0',
   '--no-first-run',
   '--no-default-browser-check',
@@ -148,9 +152,36 @@ async function main() {
   const redirected = await until(async () => (await tabUrl(offTab)) === blockedUrl, 'open tab redirect after turning on', 20000);
   check('turning on redirects the already-open x.com tab', redirected);
 
+  // A logged-in x.com is served by its own service worker; the network rule must still catch those navigations.
+  await send('Target.closeTarget', { targetId: offTab });
+  await setBlocking({ mode: 'off' });
+  await until(async () => (await ruleCount()) === 0, 'rule removal before service worker test');
+  const swTab = await openTab('about:blank');
+  const swSession = await attach(swTab);
+  await send('Page.navigate', { url: 'https://x.com/' }, swSession);
+  await until(() => evaluate(swSession, `location.origin === 'https://x.com' && document.readyState === 'complete'`).catch(() => false), 'x.com to load');
+  // A logged-in visit registers this worker; a fresh headless profile may not, so register it the same way.
+  await evaluate(swSession, `navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then(() => true)`);
+  await send('Page.reload', {}, swSession);
+  await until(() => evaluate(swSession, '!!navigator.serviceWorker?.controller').catch(() => false), 'x.com service worker to control the page');
+  await send('Target.closeTarget', { targetId: swTab });
+  await setBlocking({ mode: 'on' });
+  await until(async () => (await ruleCount()) === 1, 'rule after turning back on');
+  const swBlockedTab = await openTab('https://x.com/');
+  const swLanded = await until(async () => (await tabUrl(swBlockedTab)) === blockedUrl, 'service-worker-served x.com to reach blocked.html')
+    .catch(() => false);
+  check('x.com served by its service worker lands on blocked.html', swLanded, swLanded ? '' : await tabUrl(swBlockedTab));
+  await send('Target.closeTarget', { targetId: swBlockedTab });
+
+  // Whatever path skips the network rule, the tab URL watcher still has to send the tab away.
+  await swEval('chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [1] })');
+  const watchedTab = await openTab('https://x.com/');
+  const watched = await until(async () => (await tabUrl(watchedTab)) === blockedUrl, 'URL watcher to redirect x.com').catch(() => false);
+  check('with the network rule gone, the URL watcher still sends x.com to blocked.html', watched, watched ? '' : await tabUrl(watchedTab));
+  await send('Target.closeTarget', { targetId: watchedTab });
+
   await setBlocking({ mode: 'off' });
   await until(async () => (await ruleCount()) === 0, 'rule removal before pause test');
-  await send('Target.closeTarget', { targetId: offTab });
   const pauseTab = await openTab('https://x.com/');
   await sleep(3000);
   const pausedStart = await tabUrl(pauseTab);
