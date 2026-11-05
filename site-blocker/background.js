@@ -45,6 +45,12 @@ chrome.runtime.onStartup.addListener(apply);
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === RESUME_ALARM) apply();
 });
+// The network rule misses some navigations, so also catch any tab whose URL lands on a blocked site.
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  if (!changeInfo.url || !SB.isBlockedUrl(changeInfo.url)) return;
+  if (!SB.isBlocking(await readState(), Date.now())) return;
+  await chrome.tabs.update(tabId, { url: chrome.runtime.getURL('blocked.html') });
+});
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && SB.STORAGE_KEY in changes) apply();
 });
